@@ -1,0 +1,222 @@
+<html>
+<head>
+<style type="text/css">
+    .HeaderConnectionList {
+        background-color: #808080;
+        color: #FFFFFF;
+        height: 50px;
+        vertical-align: middle;
+        display: table-cell;
+        width: 100%;
+        font-family: Calibri;
+        font-size: 16px
+    }
+
+    .BodyConnectionList {
+        height:800px;
+        background-color:aliceblue;
+
+    }
+
+    .ConnectionList {
+        border-style: solid;
+        border-color: black;
+        border-width: 1px;
+        width: 800px;
+        font-family: Calibri;
+        font-size: 16px;
+    }
+
+    .TransactionType 
+    {/*
+        border-style: solid;
+        border-color: black;
+        border-width: 1px;*/
+        font-family: Calibri;
+        font-size: 16px;
+        background-color: #76c7ea;
+        height: 35px;
+        
+    }
+
+    .Content {
+        color: #5bc2ef;
+        font-family: Calibri;
+        font-size: 16px;
+    }
+</style>
+<script type="text/javascript" src="Scripts/jquery-2.2.1.min.js"                                ></script>
+<script language="javascript">
+var gWebSocket = null;
+function ConnectSocketServerTransaction()
+{
+    var lSuport = "MozWebSocket" in window ? 'MozWebSocket' : ("WebSocket" in window ? 'WebSocket' : null);
+
+    //var lWsConnect = $("#hddConnectionSocketOperacoesIntraday").val();
+	
+    var lWsConnect = "ws://127.0.0.1:2012/";
+
+    if (lSuport == null)
+    {
+        alert(NOSUPORTEMESSAGE);
+        return;
+    }
+
+    var lStatusConnection = $("#lblStatusConnection");
+
+    lStatusConnection.html("***  Connecting to server ....");
+
+    gWebSocket = new WebSocket(lWsConnect);
+
+    ///Evento que 顣hamado quando chega mensagem de position client
+    gWebSocket.onmessage = function (evt)
+    {
+        var pMessage = evt.data;
+        /*
+        var lContext = $('#BodyConnectionList').html();
+
+        lContext = lContext + pMessage + "\n";
+
+        $('#BodyConnectionList').html(lContext);*/
+
+        ApppendMenssageTransactionClient(pMessage);
+        
+    }
+
+    ///Evento que chamado quando a conexão aberta
+    gWebSocket.onopen = function ()
+    {
+        lStatusConnection.html("* Connection Opened!");
+        SendMessageSignature();
+    }
+
+    ///Evento que 顣hamado quando a conex䯠顦echada
+    gWebSocket.onclose = function ()
+    {
+        lStatusConnection.html("** Connection closed!");
+    }
+}
+    function Page_Load()
+    {
+        ConnectSocketServerTransaction();
+       
+    }
+
+    window.onbeforeunload = function (event) {
+    //    var message = '';
+        if (typeof event == 'undefined') {
+            event = window.event;
+        }
+
+        if (event) {
+        //    event.returnValue = message;
+
+
+        }
+
+      //  return message;
+    };
+
+    function SendMessageSignature()
+    {
+        if (gWebSocket) {
+            var lMessageToSend = "SUBSCRIBE ";
+            gWebSocket.send(lMessageToSend);
+        }
+    }
+
+    function ApppendMenssageTransactionClient(pMessage)
+    {
+        //$("#BodyConnectionList").html("");
+
+        let listMessages = pMessage.split("\n");
+
+        let pObjeto = "";
+
+        var CodeProcess = '';
+
+        var ReturnSuccess = false;
+
+        for (i = 0; i < listMessages.length; i++)
+        {
+            if (listMessages[i] != "") {
+
+                let sMessage = listMessages[i].split("=");
+
+                pObjeto += sMessage[0] + "=" + sMessage[1] + "<br />";
+
+                if (sMessage[0] == '3') ////Verifica o código de processamento
+                {
+                    CodeProcess = Number( sMessage[1]);
+                }
+
+                if (sMessage[0] == '61') ///Verifica o retorno
+                {
+                    ReturnSuccess = true;
+                }
+            }
+        }
+
+        let currentDate = new Date();
+        let date = currentDate.getDate();
+
+        console.log("Chegou mensagem ->" + date);
+
+        let TransactionType = GetTypeMessage(CodeProcess);
+
+        let tx_html = $.parseHTML('<div class=\"txdiv\"><p class=\"TransactionType\">' + TransactionType +'</p><p class=\"Content\">' + pObjeto + '</p></div>');
+
+        $("#BodyConnectionList").prepend(tx_html);
+
+        $(tx_html).hide().slideDown('slow');
+
+        if ($('#BodyConnectionList .txdiv').length > 10) {
+            $('#BodyConnectionList .txdiv:last-child').remove();
+        }
+    }
+
+    function GetTypeMessage(ProcessCode)
+    {
+         
+        var Template = '';
+        var code = ProcessCode.toString();
+        switch (code)
+        {
+            case '990110':
+                Template = 'Pagamento';//Template.CriarTemplate();
+                break;
+            case '990120':
+                Template = 'ConsultaSaldo';//Template.CriarTemplateEnvio();
+                break;
+            case '990130':
+                Template = 'AlteracaoSenha';//Template.CriarTemplateEnvio();
+                break;
+            case '990140':
+                Template = 'Cancelamento'; //Template.CriarTemplateEnvio();
+                break;
+            case '990150':
+                Template = 'Fechamento';//Template.CriarTemplateEnvio();
+                break;
+            
+        }
+
+        return Template;
+    }
+</script>
+</head>
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body onload="Page_Load()">
+
+<label id="lblStatusConnection"  > </label> 
+<div id="ConnectionList" class="ConnectionList">
+    <div id="HeaderConnectionList" class="HeaderConnectionList">
+        Informações de Transação FTC em tempo real - Websocket
+    </div>
+    <div id="BodyConnectionList" style="width:100%;clear:both;word-wrap: break-word;">
+
+    </div>
+</div>
+</body>
+</html>
