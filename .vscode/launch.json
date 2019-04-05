@@ -11,7 +11,7 @@
             "request": "launch",
             "name": "Launch Program",
             //"program": "${file}"
-            "program": "${workspaceFolder}/demo_mongodb_find.js"
+            "program": "${workspaceFolder}/curso_udemy/app.js"
         }
     ]
 }
